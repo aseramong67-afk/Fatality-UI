@@ -24,7 +24,7 @@ export type Menu = {
 	Name: string,
 	Icon: string,
 	AutoFill: boolean,
-	ESPPreview: boolean,
+	ESPPreview: boolean | ESPPreview,
 	ESPPreviewPosition: string
 }
 
@@ -70,11 +70,18 @@ export type Preview = {
 	Height: number
 }
 
+export type ESPPreviewElement = {
+	Key: string,
+	Label: string,
+	Default: boolean?,
+}
+
 export type ESPPreview = {
 	Name: string?,
 	Position: string?,
 	Height: number?,
 	Flag: string?,
+	Elements: {ESPPreviewElement}?,
 	Callback: ((key: string, value: boolean) -> any)?
 }
 
@@ -5228,6 +5235,7 @@ function Fatality.new(Window: Window)
 			Config.Callback = Config.Callback or function(key: string, value: boolean) end;
 
 			local Callback = Config.Callback;
+			local CustomElements: {ESPPreviewElement}? = Config.Elements;
 			local BodyHeight: number = 290 + (Config.Height or 0);
 			local ColumnPosition = string.lower(Config.Position or "right");
 
@@ -5354,6 +5362,14 @@ function Fatality.new(Window: Window)
 				Color = Color3.fromRGB(32, 32, 32)
 			});
 
+			local Entity = Create("Frame", Stage, {
+				Name = Fatality:RandomString(),
+				BackgroundTransparency = 1,
+				BorderColor3 = Color3.fromRGB(0, 0, 0),
+				BorderSizePixel = 0,
+				Size = UDim2.new(1, 0, 1, 0)
+			});
+
 			local function MakeText(Parent: Instance, Properties: {[string]: any})
 				Properties.BackgroundTransparency = 1;
 				Properties.BorderColor3 = Color3.fromRGB(0, 0, 0);
@@ -5366,7 +5382,7 @@ function Fatality.new(Window: Window)
 			end;
 
 			-- // Stage: ESP dummy --\\
-			MakeText(Stage, {
+			local NameLabel = MakeText(Entity, {
 				Name = Fatality:RandomString(),
 				Position = UDim2.new(0, 24, 0, 1),
 				Size = UDim2.new(0, 90, 0, 12),
@@ -5376,7 +5392,7 @@ function Fatality.new(Window: Window)
 				TextXAlignment = Enum.TextXAlignment.Center
 			});
 
-			MakeText(Stage, {
+			local DistanceLabel = MakeText(Entity, {
 				Name = Fatality:RandomString(),
 				Position = UDim2.new(0, 24, 0, 13),
 				Size = UDim2.new(0, 90, 0, 11),
@@ -5390,32 +5406,32 @@ function Fatality.new(Window: Window)
 			local DummyColor = Color3.fromRGB(255, 227, 96);
 
 			local BoxCorners = {
-				Create("Frame", Stage, { Name = Fatality:RandomString(), Position = UDim2.new(0, 24, 0, 25), Size = UDim2.new(0, 16, 0, 2), BackgroundColor3 = BoxColor, BorderSizePixel = 0 }),
-				Create("Frame", Stage, { Name = Fatality:RandomString(), Position = UDim2.new(0, 24, 0, 25), Size = UDim2.new(0, 2, 0, 16), BackgroundColor3 = BoxColor, BorderSizePixel = 0 }),
-				Create("Frame", Stage, { Name = Fatality:RandomString(), Position = UDim2.new(0, 98, 0, 25), Size = UDim2.new(0, 16, 0, 2), BackgroundColor3 = BoxColor, BorderSizePixel = 0 }),
-				Create("Frame", Stage, { Name = Fatality:RandomString(), Position = UDim2.new(0, 112, 0, 25), Size = UDim2.new(0, 2, 0, 16), BackgroundColor3 = BoxColor, BorderSizePixel = 0 }),
-				Create("Frame", Stage, { Name = Fatality:RandomString(), Position = UDim2.new(0, 24, 0, 123), Size = UDim2.new(0, 16, 0, 2), BackgroundColor3 = BoxColor, BorderSizePixel = 0 }),
-				Create("Frame", Stage, { Name = Fatality:RandomString(), Position = UDim2.new(0, 24, 0, 109), Size = UDim2.new(0, 2, 0, 16), BackgroundColor3 = BoxColor, BorderSizePixel = 0 }),
-				Create("Frame", Stage, { Name = Fatality:RandomString(), Position = UDim2.new(0, 98, 0, 123), Size = UDim2.new(0, 16, 0, 2), BackgroundColor3 = BoxColor, BorderSizePixel = 0 }),
-				Create("Frame", Stage, { Name = Fatality:RandomString(), Position = UDim2.new(0, 112, 0, 109), Size = UDim2.new(0, 2, 0, 16), BackgroundColor3 = BoxColor, BorderSizePixel = 0 })
+				Create("Frame", Entity, { Name = Fatality:RandomString(), Position = UDim2.new(0, 24, 0, 25), Size = UDim2.new(0, 16, 0, 2), BackgroundColor3 = BoxColor, BorderSizePixel = 0 }),
+				Create("Frame", Entity, { Name = Fatality:RandomString(), Position = UDim2.new(0, 24, 0, 25), Size = UDim2.new(0, 2, 0, 16), BackgroundColor3 = BoxColor, BorderSizePixel = 0 }),
+				Create("Frame", Entity, { Name = Fatality:RandomString(), Position = UDim2.new(0, 98, 0, 25), Size = UDim2.new(0, 16, 0, 2), BackgroundColor3 = BoxColor, BorderSizePixel = 0 }),
+				Create("Frame", Entity, { Name = Fatality:RandomString(), Position = UDim2.new(0, 112, 0, 25), Size = UDim2.new(0, 2, 0, 16), BackgroundColor3 = BoxColor, BorderSizePixel = 0 }),
+				Create("Frame", Entity, { Name = Fatality:RandomString(), Position = UDim2.new(0, 24, 0, 123), Size = UDim2.new(0, 16, 0, 2), BackgroundColor3 = BoxColor, BorderSizePixel = 0 }),
+				Create("Frame", Entity, { Name = Fatality:RandomString(), Position = UDim2.new(0, 24, 0, 109), Size = UDim2.new(0, 2, 0, 16), BackgroundColor3 = BoxColor, BorderSizePixel = 0 }),
+				Create("Frame", Entity, { Name = Fatality:RandomString(), Position = UDim2.new(0, 98, 0, 123), Size = UDim2.new(0, 16, 0, 2), BackgroundColor3 = BoxColor, BorderSizePixel = 0 }),
+				Create("Frame", Entity, { Name = Fatality:RandomString(), Position = UDim2.new(0, 112, 0, 109), Size = UDim2.new(0, 2, 0, 16), BackgroundColor3 = BoxColor, BorderSizePixel = 0 })
 			};
 
-			local Head = Create("Frame", Stage, { Name = Fatality:RandomString(), Position = UDim2.new(0, 62, 0, 32), Size = UDim2.new(0, 14, 0, 14), BackgroundColor3 = DummyColor, BorderSizePixel = 0 });
+			local Head = Create("Frame", Entity, { Name = Fatality:RandomString(), Position = UDim2.new(0, 62, 0, 32), Size = UDim2.new(0, 14, 0, 14), BackgroundColor3 = DummyColor, BorderSizePixel = 0 });
 			Create("UICorner", Head, { CornerRadius = UDim.new(1, 0) });
 
-			local Torso = Create("Frame", Stage, { Name = Fatality:RandomString(), Position = UDim2.new(0, 58, 0, 47), Size = UDim2.new(0, 22, 0, 38), BackgroundColor3 = DummyColor, BorderSizePixel = 0 });
+			local Torso = Create("Frame", Entity, { Name = Fatality:RandomString(), Position = UDim2.new(0, 58, 0, 47), Size = UDim2.new(0, 22, 0, 38), BackgroundColor3 = DummyColor, BorderSizePixel = 0 });
 			Create("UICorner", Torso, { CornerRadius = UDim.new(0, 3) });
 
-			local ArmLeft = Create("Frame", Stage, { Name = Fatality:RandomString(), Position = UDim2.new(0, 50, 0, 48), Size = UDim2.new(0, 7, 0, 32), BackgroundColor3 = DummyColor, BorderSizePixel = 0 });
-			local ArmRight = Create("Frame", Stage, { Name = Fatality:RandomString(), Position = UDim2.new(0, 81, 0, 48), Size = UDim2.new(0, 7, 0, 32), BackgroundColor3 = DummyColor, BorderSizePixel = 0 });
-			local LegLeft = Create("Frame", Stage, { Name = Fatality:RandomString(), Position = UDim2.new(0, 59, 0, 86), Size = UDim2.new(0, 9, 0, 30), BackgroundColor3 = DummyColor, BorderSizePixel = 0 });
-			local LegRight = Create("Frame", Stage, { Name = Fatality:RandomString(), Position = UDim2.new(0, 70, 0, 86), Size = UDim2.new(0, 9, 0, 30), BackgroundColor3 = DummyColor, BorderSizePixel = 0 });
+			local ArmLeft = Create("Frame", Entity, { Name = Fatality:RandomString(), Position = UDim2.new(0, 50, 0, 48), Size = UDim2.new(0, 7, 0, 32), BackgroundColor3 = DummyColor, BorderSizePixel = 0 });
+			local ArmRight = Create("Frame", Entity, { Name = Fatality:RandomString(), Position = UDim2.new(0, 81, 0, 48), Size = UDim2.new(0, 7, 0, 32), BackgroundColor3 = DummyColor, BorderSizePixel = 0 });
+			local LegLeft = Create("Frame", Entity, { Name = Fatality:RandomString(), Position = UDim2.new(0, 59, 0, 86), Size = UDim2.new(0, 9, 0, 30), BackgroundColor3 = DummyColor, BorderSizePixel = 0 });
+			local LegRight = Create("Frame", Entity, { Name = Fatality:RandomString(), Position = UDim2.new(0, 70, 0, 86), Size = UDim2.new(0, 9, 0, 30), BackgroundColor3 = DummyColor, BorderSizePixel = 0 });
 
 			for _, Limb in next, {ArmLeft, ArmRight, LegLeft, LegRight} do
 				Create("UICorner", Limb, { CornerRadius = UDim.new(0, 2) });
 			end;
 
-			local HitIcon = Create("ImageLabel", Stage, {
+			local HitIcon = Create("ImageLabel", Entity, {
 				Name = Fatality:RandomString(),
 				AnchorPoint = Vector2.new(0.5, 0.5),
 				BackgroundTransparency = 1,
@@ -5429,7 +5445,7 @@ function Fatality.new(Window: Window)
 			});
 
 			-- // Stage: bars and weapon --\\
-			local ArmorBar = Create("Frame", Stage, {
+			local ArmorBar = Create("Frame", Entity, {
 				Name = Fatality:RandomString(),
 				BackgroundColor3 = Color3.fromRGB(45, 45, 45),
 				BorderColor3 = Color3.fromRGB(0, 0, 0),
@@ -5450,7 +5466,7 @@ function Fatality.new(Window: Window)
 
 			Create("UICorner", ArmorBarFill, { CornerRadius = UDim.new(0, 2) });
 
-			local HealthBar = Create("Frame", Stage, {
+			local HealthBar = Create("Frame", Entity, {
 				Name = Fatality:RandomString(),
 				BackgroundColor3 = Color3.fromRGB(45, 45, 45),
 				BorderColor3 = Color3.fromRGB(0, 0, 0),
@@ -5471,7 +5487,7 @@ function Fatality.new(Window: Window)
 
 			Create("UICorner", HealthBarFill, { CornerRadius = UDim.new(0, 2) });
 
-			MakeText(Stage, {
+			local HealthText = MakeText(Entity, {
 				Name = Fatality:RandomString(),
 				Position = UDim2.new(0, 116, 0, 131),
 				Size = UDim2.new(0, 60, 0, 12),
@@ -5481,7 +5497,7 @@ function Fatality.new(Window: Window)
 				TextXAlignment = Enum.TextXAlignment.Left
 			});
 
-			local WeaponText = MakeText(Stage, {
+			local WeaponText = MakeText(Entity, {
 				Name = Fatality:RandomString(),
 				Position = UDim2.new(0, 24, 0, 139),
 				Size = UDim2.new(0, 90, 0, 12),
@@ -5490,7 +5506,7 @@ function Fatality.new(Window: Window)
 				TextXAlignment = Enum.TextXAlignment.Center
 			});
 
-			local AmmoText = MakeText(Stage, {
+			local AmmoText = MakeText(Entity, {
 				Name = Fatality:RandomString(),
 				Position = UDim2.new(0, 116, 0, 139),
 				Size = UDim2.new(0, 60, 0, 12),
@@ -5500,7 +5516,7 @@ function Fatality.new(Window: Window)
 				TextXAlignment = Enum.TextXAlignment.Left
 			});
 
-			local AmmoBar = Create("Frame", Stage, {
+			local AmmoBar = Create("Frame", Entity, {
 				Name = Fatality:RandomString(),
 				BackgroundColor3 = Color3.fromRGB(45, 45, 45),
 				BorderColor3 = Color3.fromRGB(0, 0, 0),
@@ -5521,8 +5537,36 @@ function Fatality.new(Window: Window)
 
 			Create("UICorner", AmmoBarFill, { CornerRadius = UDim.new(0, 2) });
 
+			-- // Stage: tracer --\\
+			local TracerLine = Create("Frame", Entity, {
+				Name = Fatality:RandomString(),
+				AnchorPoint = Vector2.new(0.5, 0.5),
+				BackgroundColor3 = BoxColor,
+				BorderColor3 = Color3.fromRGB(0, 0, 0),
+				BorderSizePixel = 0,
+				Position = UDim2.new(0.5, 0, 1, -40),
+				Size = UDim2.new(0, 1, 0, 40)
+			});
+
+			local function LayoutTracer()
+				local AbsSize = Stage.AbsoluteSize;
+				local StartX = AbsSize.X / 2;
+				local StartY = AbsSize.Y - 6;
+				local EndX = 69;
+				local EndY = 116;
+				local DeltaX = EndX - StartX;
+				local DeltaY = EndY - StartY;
+				local Length = math.max(math.sqrt(DeltaX * DeltaX + DeltaY * DeltaY), 1);
+
+				TracerLine.Position = UDim2.fromOffset((StartX + EndX) / 2, (StartY + EndY) / 2);
+				TracerLine.Size = UDim2.fromOffset(Length, 1);
+				TracerLine.Rotation = math.deg(math.atan2(DeltaY, DeltaX));
+			end;
+
+			Stage:GetPropertyChangedSignal("AbsoluteSize"):Connect(LayoutTracer);
+
 			-- // Stage: right side flags --\\
-			local FlagsHolder = Create("Frame", Stage, {
+			local FlagsHolder = Create("Frame", Entity, {
 				Name = Fatality:RandomString(),
 				BackgroundTransparency = 1,
 				BorderColor3 = Color3.fromRGB(0, 0, 0),
@@ -5591,7 +5635,7 @@ function Fatality.new(Window: Window)
 				Padding = UDim.new(0, 4)
 			});
 
-			local ChipDefs = {
+			local ChipDefs: {{Key: string, Label: string, Default: boolean?}} = CustomElements or {
 				{ Key = "Box", Label = "Box" },
 				{ Key = "Money", Label = "Money" },
 				{ Key = "Defusing", Label = "Defusing" },
@@ -5607,12 +5651,34 @@ function Fatality.new(Window: Window)
 				{ Key = "ArmorBar", Label = "Armor Bar" }
 			};
 
+			local CustomKeys: {[string]: boolean} = {};
+
+			if CustomElements then
+				for _, Def in next, CustomElements do
+					CustomKeys[Def.Key] = true;
+				end;
+			end;
+
+			local CustomMode = CustomElements ~= nil;
+
 			local States: {[string]: boolean} = {
-				Box = true,
-				Money = true,
-				Defusing = true,
-				ItemName = true
+				ESP = true,
+				Name = true,
+				Distance = true,
+				Health = true,
+				Tracer = false
 			};
+
+			if CustomElements then
+				for _, Def in next, CustomElements do
+					States[Def.Key] = Def.Default == true;
+				end;
+			else
+				States.Box = true;
+				States.Money = true;
+				States.Defusing = true;
+				States.ItemName = true;
+			end;
 
 			local ChipsUI: {[string]: TextButton} = {};
 
@@ -5644,7 +5710,12 @@ function Fatality.new(Window: Window)
 			end;
 
 			local ElementMap: {[string]: {Instance}} = {
+				ESP = {Entity},
 				Box = BoxCorners,
+				Name = {NameLabel},
+				Distance = {DistanceLabel},
+				Health = {HealthBar, HealthBarFill, HealthText},
+				Tracer = {TracerLine},
 				Money = {FlagList[5].Label},
 				Defusing = {FlagList[4].Label},
 				Armor = {FlagList[6].Label},
@@ -5665,7 +5736,15 @@ function Fatality.new(Window: Window)
 				local Offset = 0;
 
 				for _, Entry in next, FlagList do
-					local Show = (Entry.Key == nil) or (States[Entry.Key] == true);
+					local Show;
+
+					if Entry.Key == nil then
+						Show = not CustomMode;
+					elseif CustomMode then
+						Show = CustomKeys[Entry.Key] == true and States[Entry.Key] == true;
+					else
+						Show = States[Entry.Key] == true;
+					end;
 
 					Entry.Label.Visible = Show;
 
@@ -5986,6 +6065,12 @@ function Fatality.new(Window: Window)
 
 				ApplyElement(Key);
 			end;
+
+			for Key in next, ChipsUI do
+				UpdateChip(Key);
+			end;
+
+			LayoutTracer();
 
 			ApplySize();
 
@@ -6615,9 +6700,15 @@ function Fatality.new(Window: Window)
 		end;
 
 		if Menu.ESPPreview ~= false then
-			MenuLib:AddESPPreview({
-				Position = Menu.ESPPreviewPosition or "right"
-			});
+			local PreviewConfig: ESPPreview = {};
+
+			if type(Menu.ESPPreview) == "table" then
+				PreviewConfig = Menu.ESPPreview;
+			end;
+
+			PreviewConfig.Position = PreviewConfig.Position or Menu.ESPPreviewPosition or "right";
+
+			MenuLib:AddESPPreview(PreviewConfig);
 		end;
 
 		return MenuLib;
