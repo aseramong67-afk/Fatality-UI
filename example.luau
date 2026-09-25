@@ -915,6 +915,18 @@ end));
 local Window = Fatality.new({
 	Name = "FATALITY",
 	Expire = "never",
+	ESPPreview = {
+		Elements = {
+			{ Key = "ESP", Label = "Enemy ESP", Default = true },
+			{ Key = "Box", Label = "Box", Default = true },
+			{ Key = "Name", Label = "Names", Default = true },
+			{ Key = "Distance", Label = "Distance", Default = true },
+			{ Key = "ItemName", Label = "Weapon", Default = true },
+			{ Key = "Health", Label = "Health bar", Default = true },
+			{ Key = "Tracer", Label = "Tracers", Default = true }
+		},
+		Callback = ApplyESPFlags
+	}
 });
 
 local Rage = Window:AddMenu({
@@ -929,19 +941,7 @@ local Legit = Window:AddMenu({
 
 local Visual = Window:AddMenu({
 	Name = "VISUAL",
-	Icon = "eye",
-	ESPPreview = {
-		Elements = {
-			{ Key = "ESP", Label = "Enemy ESP", Default = true },
-			{ Key = "Box", Label = "Box", Default = true },
-			{ Key = "Name", Label = "Names", Default = true },
-			{ Key = "Distance", Label = "Distance", Default = true },
-			{ Key = "ItemName", Label = "Weapon", Default = true },
-			{ Key = "Health", Label = "Health bar", Default = true },
-			{ Key = "Tracer", Label = "Tracers", Default = true }
-		},
-		Callback = ApplyESPFlags
-	}
+	Icon = "eye"
 })
 
 local Misc = Window:AddMenu({

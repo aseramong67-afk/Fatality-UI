@@ -11,7 +11,9 @@ export type Window = {
 	Name: string,
 	Keybind: string | Enum.KeyCode,
 	Scale: UDim2,
-	Expire: string
+	Expire: string,
+	ESPPreview: boolean | ESPPreview,
+	ESPPreviewPosition: string
 }
 
 export type Loader = {
@@ -23,9 +25,7 @@ export type Loader = {
 export type Menu = {
 	Name: string,
 	Icon: string,
-	AutoFill: boolean,
-	ESPPreview: boolean | ESPPreview,
-	ESPPreviewPosition: string
+	AutoFill: boolean
 }
 
 export type Section = {
@@ -4793,10 +4793,6 @@ function Fatality.new(Window: Window)
 		Menu.Icon = Menu.Icon or "eye";
 		Menu.AutoFill = (Menu.AutoFill == nil and true) or false;
 
-		if Menu.ESPPreview == nil then
-			Menu.ESPPreview = true;
-		end;
-
 		local MenuLib = {};
 		local MenuButton = Instance.new("Frame")
 		local UICorner = Instance.new("UICorner")
@@ -6699,18 +6695,6 @@ function Fatality.new(Window: Window)
 			});
 		end;
 
-		if Menu.ESPPreview ~= false then
-			local PreviewConfig: ESPPreview = {};
-
-			if type(Menu.ESPPreview) == "table" then
-				PreviewConfig = Menu.ESPPreview;
-			end;
-
-			PreviewConfig.Position = PreviewConfig.Position or Menu.ESPPreviewPosition or "right";
-
-			MenuLib:AddESPPreview(PreviewConfig);
-		end;
-
 		return MenuLib;
 	end;
 
@@ -7253,6 +7237,914 @@ function Fatality.new(Window: Window)
 		end)
 
 		return backpack;
+	end;
+
+	local function CreateSideESPPreview(SideConfig: ESPPreview)
+		SideConfig = SideConfig or {};
+		SideConfig.Name = SideConfig.Name or "ESP PREVIEW";
+		SideConfig.Height = SideConfig.Height or 0;
+		SideConfig.Callback = SideConfig.Callback or function(key: string, value: boolean) end;
+
+		local Callback = SideConfig.Callback;
+		local CustomElements: {ESPPreviewElement}? = SideConfig.Elements;
+		local BodyHeight: number = 290 + (SideConfig.Height or 0);
+		local SideWidth = 232;
+		local SideGap = 8;
+		local SidePosition = string.lower(SideConfig.Position or Window.ESPPreviewPosition or "right");
+
+		table.insert(Fatal.ElementContents,{
+			Name = "ESP Preview",
+			Path = Window.Name .. " > ESP Preview",
+			_TAB = nil
+		});
+
+		local function Create(Class: string, Parent: Instance?, Properties: {[string]: any})
+			local Object = Instance.new(Class);
+
+			for i, v in next, Properties do
+				Object[i] = v;
+			end;
+
+			Object.Parent = Parent;
+
+			return Object;
+		end;
+
+		local Preview = Create("Frame", nil, {
+			Name = Fatality:RandomString(),
+			BackgroundColor3 = Color3.fromRGB(19, 19, 19),
+			BorderColor3 = Color3.fromRGB(0, 0, 0),
+			BorderSizePixel = 0,
+			ClipsDescendants = true,
+			ZIndex = 15,
+			Size = UDim2.new(0, SideWidth, 0, 25 + BodyHeight)
+		});
+
+		Preview.Parent = Fatalitywin;
+
+		local function PlaceSide()
+			local FramePos = FatalFrame.Position;
+			local FrameSize = FatalFrame.Size;
+			local XOffset = FramePos.X.Offset + ((SidePosition == "left") and (-SideWidth - SideGap) or (FrameSize.X.Offset + SideGap));
+
+			Preview.Position = UDim2.new(FramePos.X.Scale, XOffset, FramePos.Y.Scale, FramePos.Y.Offset + 50);
+		end;
+
+		FatalFrame:GetPropertyChangedSignal("Position"):Connect(PlaceSide);
+		FatalFrame:GetPropertyChangedSignal("Size"):Connect(PlaceSide);
+
+		PlaceSide();
+
+		local Title = Create("TextLabel", Preview, {
+			Name = Fatality:RandomString(),
+			BackgroundTransparency = 1,
+			BorderColor3 = Color3.fromRGB(0, 0, 0),
+			BorderSizePixel = 0,
+			Position = UDim2.new(0, 10, 0, 5),
+			Size = UDim2.new(1, -70, 0, 15),
+			ZIndex = 19,
+			FontFace = Fatality.FontSemiBold,
+			Text = SideConfig.Name,
+			TextColor3 = Color3.fromRGB(255, 255, 255),
+			TextSize = 15.000,
+			TextStrokeTransparency = 0.750,
+			TextXAlignment = Enum.TextXAlignment.Left
+		});
+
+		local HelpButton = Create("ImageLabel", Preview, {
+			Name = Fatality:RandomString(),
+			AnchorPoint = Vector2.new(1, 0),
+			BackgroundTransparency = 1,
+			BorderColor3 = Color3.fromRGB(0, 0, 0),
+			BorderSizePixel = 0,
+			Position = UDim2.new(1, -27, 0, 5),
+			Size = UDim2.new(0, 15, 0, 15),
+			ZIndex = 20,
+			Image = Fatality:GetIcon("help-circle"),
+			ImageColor3 = Color3.fromRGB(255, 255, 255),
+			ImageTransparency = 0.500
+		});
+
+		local CollapseButton = Create("ImageLabel", Preview, {
+			Name = Fatality:RandomString(),
+			AnchorPoint = Vector2.new(1, 0),
+			BackgroundTransparency = 1,
+			BorderColor3 = Color3.fromRGB(0, 0, 0),
+			BorderSizePixel = 0,
+			Position = UDim2.new(1, -7, 0, 5),
+			Size = UDim2.new(0, 15, 0, 15),
+			ZIndex = 20,
+			Image = Fatality:GetIcon("chevron-up"),
+			ImageColor3 = Color3.fromRGB(255, 255, 255),
+			ImageTransparency = 0.500
+		});
+
+		local Main = Create("Frame", Preview, {
+			Name = Fatality:RandomString(),
+			AnchorPoint = Vector2.new(0.5, 0),
+			BackgroundColor3 = Color3.fromRGB(24, 24, 24),
+			BorderColor3 = Color3.fromRGB(0, 0, 0),
+			BorderSizePixel = 0,
+			ClipsDescendants = true,
+			Position = UDim2.new(0.5, 0, 0, 22),
+			Size = UDim2.new(1, -6, 1, -25),
+			ZIndex = 17
+		});
+
+		local UIStroke = Create("UIStroke", Main, {
+			Color = Color3.fromRGB(29, 29, 29)
+		});
+
+		Create("UICorner", Main, {
+			CornerRadius = UDim.new(0, 2)
+		});
+
+		local Content = Create("Frame", Main, {
+			Name = Fatality:RandomString(),
+			BackgroundTransparency = 1,
+			BorderColor3 = Color3.fromRGB(0, 0, 0),
+			BorderSizePixel = 0,
+			ClipsDescendants = true,
+			Size = UDim2.new(1, 0, 1, -3),
+			ZIndex = 18
+		});
+
+		local Stage = Create("Frame", Content, {
+			Name = Fatality:RandomString(),
+			AnchorPoint = Vector2.new(0, 0),
+			BackgroundColor3 = Color3.fromRGB(16, 16, 16),
+			BorderColor3 = Color3.fromRGB(0, 0, 0),
+			BorderSizePixel = 0,
+			ClipsDescendants = true,
+			Position = UDim2.new(0, 4, 0, 4),
+			Size = UDim2.new(1, -8, 0, BodyHeight - 119)
+		});
+
+		Create("UICorner", Stage, {
+			CornerRadius = UDim.new(0, 2)
+		});
+
+		Create("UIStroke", Stage, {
+			Color = Color3.fromRGB(32, 32, 32)
+		});
+
+		local Entity = Create("Frame", Stage, {
+			Name = Fatality:RandomString(),
+			BackgroundTransparency = 1,
+			BorderColor3 = Color3.fromRGB(0, 0, 0),
+			BorderSizePixel = 0,
+			Size = UDim2.new(1, 0, 1, 0)
+		});
+
+		local function MakeText(Parent: Instance, Properties: {[string]: any})
+			Properties.BackgroundTransparency = 1;
+			Properties.BorderColor3 = Color3.fromRGB(0, 0, 0);
+			Properties.BorderSizePixel = 0;
+			Properties.FontFace = Properties.FontFace or Fatality.FontSemiBold;
+			Properties.TextColor3 = Properties.TextColor3 or Color3.fromRGB(255, 255, 255);
+			Properties.TextStrokeTransparency = Properties.TextStrokeTransparency or 0.850;
+
+			return Create("TextLabel", Parent, Properties);
+		end;
+
+		-- // Stage: ESP dummy --\\
+		local NameLabel = MakeText(Entity, {
+			Name = Fatality:RandomString(),
+			Position = UDim2.new(0, 24, 0, 1),
+			Size = UDim2.new(0, 90, 0, 12),
+			Text = "Enemy Player",
+			TextSize = 11.000,
+			TextStrokeTransparency = 0.800,
+			TextXAlignment = Enum.TextXAlignment.Center
+		});
+
+		local DistanceLabel = MakeText(Entity, {
+			Name = Fatality:RandomString(),
+			Position = UDim2.new(0, 24, 0, 13),
+			Size = UDim2.new(0, 90, 0, 11),
+			Text = "100m",
+			TextSize = 10.000,
+			TextTransparency = 0.250,
+			TextXAlignment = Enum.TextXAlignment.Center
+		});
+
+		local BoxColor = Fatality.Colors.Main;
+		local DummyColor = Color3.fromRGB(255, 227, 96);
+
+		local BoxCorners = {
+			Create("Frame", Entity, { Name = Fatality:RandomString(), Position = UDim2.new(0, 24, 0, 25), Size = UDim2.new(0, 16, 0, 2), BackgroundColor3 = BoxColor, BorderSizePixel = 0 }),
+			Create("Frame", Entity, { Name = Fatality:RandomString(), Position = UDim2.new(0, 24, 0, 25), Size = UDim2.new(0, 2, 0, 16), BackgroundColor3 = BoxColor, BorderSizePixel = 0 }),
+			Create("Frame", Entity, { Name = Fatality:RandomString(), Position = UDim2.new(0, 98, 0, 25), Size = UDim2.new(0, 16, 0, 2), BackgroundColor3 = BoxColor, BorderSizePixel = 0 }),
+			Create("Frame", Entity, { Name = Fatality:RandomString(), Position = UDim2.new(0, 112, 0, 25), Size = UDim2.new(0, 2, 0, 16), BackgroundColor3 = BoxColor, BorderSizePixel = 0 }),
+			Create("Frame", Entity, { Name = Fatality:RandomString(), Position = UDim2.new(0, 24, 0, 123), Size = UDim2.new(0, 16, 0, 2), BackgroundColor3 = BoxColor, BorderSizePixel = 0 }),
+			Create("Frame", Entity, { Name = Fatality:RandomString(), Position = UDim2.new(0, 24, 0, 109), Size = UDim2.new(0, 2, 0, 16), BackgroundColor3 = BoxColor, BorderSizePixel = 0 }),
+			Create("Frame", Entity, { Name = Fatality:RandomString(), Position = UDim2.new(0, 98, 0, 123), Size = UDim2.new(0, 16, 0, 2), BackgroundColor3 = BoxColor, BorderSizePixel = 0 }),
+			Create("Frame", Entity, { Name = Fatality:RandomString(), Position = UDim2.new(0, 112, 0, 109), Size = UDim2.new(0, 2, 0, 16), BackgroundColor3 = BoxColor, BorderSizePixel = 0 })
+		};
+
+		local Head = Create("Frame", Entity, { Name = Fatality:RandomString(), Position = UDim2.new(0, 62, 0, 32), Size = UDim2.new(0, 14, 0, 14), BackgroundColor3 = DummyColor, BorderSizePixel = 0 });
+		Create("UICorner", Head, { CornerRadius = UDim.new(1, 0) });
+
+		local Torso = Create("Frame", Entity, { Name = Fatality:RandomString(), Position = UDim2.new(0, 58, 0, 47), Size = UDim2.new(0, 22, 0, 38), BackgroundColor3 = DummyColor, BorderSizePixel = 0 });
+		Create("UICorner", Torso, { CornerRadius = UDim.new(0, 3) });
+
+		local ArmLeft = Create("Frame", Entity, { Name = Fatality:RandomString(), Position = UDim2.new(0, 50, 0, 48), Size = UDim2.new(0, 7, 0, 32), BackgroundColor3 = DummyColor, BorderSizePixel = 0 });
+		local ArmRight = Create("Frame", Entity, { Name = Fatality:RandomString(), Position = UDim2.new(0, 81, 0, 48), Size = UDim2.new(0, 7, 0, 32), BackgroundColor3 = DummyColor, BorderSizePixel = 0 });
+		local LegLeft = Create("Frame", Entity, { Name = Fatality:RandomString(), Position = UDim2.new(0, 59, 0, 86), Size = UDim2.new(0, 9, 0, 30), BackgroundColor3 = DummyColor, BorderSizePixel = 0 });
+		local LegRight = Create("Frame", Entity, { Name = Fatality:RandomString(), Position = UDim2.new(0, 70, 0, 86), Size = UDim2.new(0, 9, 0, 30), BackgroundColor3 = DummyColor, BorderSizePixel = 0 });
+
+		for _, Limb in next, {ArmLeft, ArmRight, LegLeft, LegRight} do
+			Create("UICorner", Limb, { CornerRadius = UDim.new(0, 2) });
+		end;
+
+		local HitIcon = Create("ImageLabel", Entity, {
+			Name = Fatality:RandomString(),
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			BackgroundTransparency = 1,
+			BorderColor3 = Color3.fromRGB(0, 0, 0),
+			BorderSizePixel = 0,
+			Position = UDim2.new(0, 69, 0, 70),
+			Size = UDim2.new(0, 22, 0, 22),
+			Image = Fatality:GetIcon("x"),
+			ImageColor3 = Color3.fromRGB(255, 80, 80),
+			ImageTransparency = 0.100
+		});
+
+		-- // Stage: bars and weapon --\\
+		local ArmorBar = Create("Frame", Entity, {
+			Name = Fatality:RandomString(),
+			BackgroundColor3 = Color3.fromRGB(45, 45, 45),
+			BorderColor3 = Color3.fromRGB(0, 0, 0),
+			BorderSizePixel = 0,
+			Position = UDim2.new(0, 24, 0, 127),
+			Size = UDim2.new(0, 90, 0, 3)
+		});
+
+		Create("UICorner", ArmorBar, { CornerRadius = UDim.new(0, 2) });
+
+		local ArmorBarFill = Create("Frame", ArmorBar, {
+			Name = Fatality:RandomString(),
+			BackgroundColor3 = Color3.fromRGB(98, 158, 255),
+			BorderColor3 = Color3.fromRGB(0, 0, 0),
+			BorderSizePixel = 0,
+			Size = UDim2.new(0.75, 0, 1, 0)
+		});
+
+		Create("UICorner", ArmorBarFill, { CornerRadius = UDim.new(0, 2) });
+
+		local HealthBar = Create("Frame", Entity, {
+			Name = Fatality:RandomString(),
+			BackgroundColor3 = Color3.fromRGB(45, 45, 45),
+			BorderColor3 = Color3.fromRGB(0, 0, 0),
+			BorderSizePixel = 0,
+			Position = UDim2.new(0, 24, 0, 132),
+			Size = UDim2.new(0, 90, 0, 5)
+		});
+
+		Create("UICorner", HealthBar, { CornerRadius = UDim.new(0, 2) });
+
+		local HealthBarFill = Create("Frame", HealthBar, {
+			Name = Fatality:RandomString(),
+			BackgroundColor3 = Color3.fromRGB(126, 226, 146),
+			BorderColor3 = Color3.fromRGB(0, 0, 0),
+			BorderSizePixel = 0,
+			Size = UDim2.new(1, 0, 1, 0)
+		});
+
+		Create("UICorner", HealthBarFill, { CornerRadius = UDim.new(0, 2) });
+
+		local HealthText = MakeText(Entity, {
+			Name = Fatality:RandomString(),
+			Position = UDim2.new(0, 116, 0, 131),
+			Size = UDim2.new(0, 60, 0, 12),
+			Text = "100",
+			TextSize = 10.000,
+			TextTransparency = 0.150,
+			TextXAlignment = Enum.TextXAlignment.Left
+		});
+
+		local WeaponText = MakeText(Entity, {
+			Name = Fatality:RandomString(),
+			Position = UDim2.new(0, 24, 0, 139),
+			Size = UDim2.new(0, 90, 0, 12),
+			Text = "AK-47",
+			TextSize = 11.000,
+			TextXAlignment = Enum.TextXAlignment.Center
+		});
+
+		local AmmoText = MakeText(Entity, {
+			Name = Fatality:RandomString(),
+			Position = UDim2.new(0, 116, 0, 139),
+			Size = UDim2.new(0, 60, 0, 12),
+			Text = "24/30",
+			TextSize = 10.000,
+			TextTransparency = 0.300,
+			TextXAlignment = Enum.TextXAlignment.Left
+		});
+
+		local AmmoBar = Create("Frame", Entity, {
+			Name = Fatality:RandomString(),
+			BackgroundColor3 = Color3.fromRGB(45, 45, 45),
+			BorderColor3 = Color3.fromRGB(0, 0, 0),
+			BorderSizePixel = 0,
+			Position = UDim2.new(0, 24, 0, 153),
+			Size = UDim2.new(0, 90, 0, 3)
+		});
+
+		Create("UICorner", AmmoBar, { CornerRadius = UDim.new(0, 2) });
+
+		local AmmoBarFill = Create("Frame", AmmoBar, {
+			Name = Fatality:RandomString(),
+			BackgroundColor3 = Fatality.Colors.Main,
+			BorderColor3 = Color3.fromRGB(0, 0, 0),
+			BorderSizePixel = 0,
+			Size = UDim2.new(0.6, 0, 1, 0)
+		});
+
+		Create("UICorner", AmmoBarFill, { CornerRadius = UDim.new(0, 2) });
+
+		-- // Stage: tracer --\\
+		local TracerLine = Create("Frame", Entity, {
+			Name = Fatality:RandomString(),
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			BackgroundColor3 = BoxColor,
+			BorderColor3 = Color3.fromRGB(0, 0, 0),
+			BorderSizePixel = 0,
+			Position = UDim2.new(0.5, 0, 1, -40),
+			Size = UDim2.new(0, 1, 0, 40)
+		});
+
+		local function LayoutTracer()
+			local AbsSize = Stage.AbsoluteSize;
+			local StartX = AbsSize.X / 2;
+			local StartY = AbsSize.Y - 6;
+			local EndX = 69;
+			local EndY = 116;
+			local DeltaX = EndX - StartX;
+			local DeltaY = EndY - StartY;
+			local Length = math.max(math.sqrt(DeltaX * DeltaX + DeltaY * DeltaY), 1);
+
+			TracerLine.Position = UDim2.fromOffset((StartX + EndX) / 2, (StartY + EndY) / 2);
+			TracerLine.Size = UDim2.fromOffset(Length, 1);
+			TracerLine.Rotation = math.deg(math.atan2(DeltaY, DeltaX));
+		end;
+
+		Stage:GetPropertyChangedSignal("AbsoluteSize"):Connect(LayoutTracer);
+
+		-- // Stage: right side flags --\\
+		local FlagsHolder = Create("Frame", Entity, {
+			Name = Fatality:RandomString(),
+			BackgroundTransparency = 1,
+			BorderColor3 = Color3.fromRGB(0, 0, 0),
+			BorderSizePixel = 0,
+			Position = UDim2.new(0, 120, 0, 6),
+			Size = UDim2.new(1, -124, 1, -12)
+		});
+
+		local FlagDefs = {
+			{ Text = "Flashed" },
+			{ Text = "Scoped" },
+			{ Text = "Color" },
+			{ Text = "Defusing", Key = "Defusing" },
+			{ Text = "100 KE", Key = "Money" },
+			{ Text = "Kevlar", Key = "Armor" },
+			{ Text = "His Bomb", Key = "HisBomb" },
+			{ Text = "Break LC", Key = "BreakLC" },
+			{ Text = "Taser", Key = "Taser" },
+			{ Text = "Ping 35 ms", Key = "Ping" }
+		};
+
+		local FlagList = {};
+
+		for i, Def in next, FlagDefs do
+			local Label = MakeText(FlagsHolder, {
+				Name = Fatality:RandomString(),
+				Position = UDim2.new(0, 0, 0, (i - 1) * 14),
+				Size = UDim2.new(1, 0, 0, 11),
+				Text = Def.Text,
+				TextSize = 10.000,
+				TextXAlignment = Enum.TextXAlignment.Right
+			});
+
+			table.insert(FlagList,{
+				Label = Label,
+				Key = Def.Key
+			});
+		end;
+
+		-- // Drag & Drop chips --\\
+		MakeText(Content, {
+			Name = Fatality:RandomString(),
+			Position = UDim2.new(0, 6, 1, -106),
+			Size = UDim2.new(1, -12, 0, 14),
+			Text = "Drag & Drop Elements",
+			TextSize = 11.000,
+			TextTransparency = 0.200,
+			TextXAlignment = Enum.TextXAlignment.Left
+		});
+
+		local ChipsHolder = Create("Frame", Content, {
+			Name = Fatality:RandomString(),
+			BackgroundTransparency = 1,
+			BorderColor3 = Color3.fromRGB(0, 0, 0),
+			BorderSizePixel = 0,
+			Position = UDim2.new(0, 4, 1, -88),
+			Size = UDim2.new(1, -8, 0, 84)
+		});
+
+		Create("UIListLayout", ChipsHolder, {
+			FillDirection = Enum.FillDirection.Horizontal,
+			HorizontalAlignment = Enum.HorizontalAlignment.Left,
+			VerticalAlignment = Enum.VerticalAlignment.Top,
+			SortOrder = Enum.SortOrder.LayoutOrder,
+			Wraps = true,
+			Padding = UDim.new(0, 4)
+		});
+
+		local ChipDefs: {{Key: string, Label: string, Default: boolean?}} = CustomElements or {
+			{ Key = "Box", Label = "Box" },
+			{ Key = "Money", Label = "Money" },
+			{ Key = "Defusing", Label = "Defusing" },
+			{ Key = "Armor", Label = "Armor" },
+			{ Key = "Hit", Label = "Hit" },
+			{ Key = "HisBomb", Label = "His Bomb" },
+			{ Key = "BreakLC", Label = "Break LC" },
+			{ Key = "Taser", Label = "Taser" },
+			{ Key = "AmmoBar", Label = "Ammo Bar" },
+			{ Key = "Ammo", Label = "Ammo" },
+			{ Key = "Ping", Label = "Ping" },
+			{ Key = "ItemName", Label = "Item Name" },
+			{ Key = "ArmorBar", Label = "Armor Bar" }
+		};
+
+		local CustomKeys: {[string]: boolean} = {};
+
+		if CustomElements then
+			for _, Def in next, CustomElements do
+				CustomKeys[Def.Key] = true;
+			end;
+		end;
+
+		local CustomMode = CustomElements ~= nil;
+
+		local States: {[string]: boolean} = {
+			ESP = true,
+			Name = true,
+			Distance = true,
+			Health = true,
+			Tracer = false
+		};
+
+		if CustomElements then
+			for _, Def in next, CustomElements do
+				States[Def.Key] = Def.Default == true;
+			end;
+		else
+			States.Box = true;
+			States.Money = true;
+			States.Defusing = true;
+			States.ItemName = true;
+		end;
+
+		local ChipsUI: {[string]: TextButton} = {};
+
+		for i, Def in next, ChipDefs do
+			local Measured = TextService:GetTextSize(Def.Label, 10, Enum.Font.GothamMedium, Vector2.new(math.huge, math.huge));
+
+			local Chip = Create("TextButton", ChipsHolder, {
+				Name = Fatality:RandomString(),
+				AutoButtonColor = false,
+				BackgroundColor3 = Color3.fromRGB(30, 30, 30),
+				BorderColor3 = Color3.fromRGB(0, 0, 0),
+				BorderSizePixel = 0,
+				LayoutOrder = i,
+				Size = UDim2.new(0, Measured.X + 18, 0, 18),
+				FontFace = Fatality.FontSemiBold,
+				Text = Def.Label,
+				TextColor3 = Color3.fromRGB(255, 255, 255),
+				TextSize = 10.000,
+				TextTransparency = 0.450
+			});
+
+			Create("UICorner", Chip, {
+				CornerRadius = UDim.new(0, 2)
+			});
+
+			Fatality:AddDragBlacklist(Chip);
+
+			ChipsUI[Def.Key] = Chip;
+		end;
+
+		local ElementMap: {[string]: {Instance}} = {
+			ESP = {Entity},
+			Box = BoxCorners,
+			Name = {NameLabel},
+			Distance = {DistanceLabel},
+			Health = {HealthBar, HealthBarFill, HealthText},
+			Tracer = {TracerLine},
+			Money = {FlagList[5].Label},
+			Defusing = {FlagList[4].Label},
+			Armor = {FlagList[6].Label},
+			Hit = {HitIcon},
+			HisBomb = {FlagList[7].Label},
+			BreakLC = {FlagList[8].Label},
+			Taser = {FlagList[9].Label},
+			AmmoBar = {AmmoBar, AmmoBarFill},
+			Ammo = {AmmoText},
+			Ping = {FlagList[10].Label},
+			ItemName = {WeaponText},
+			ArmorBar = {ArmorBar, ArmorBarFill}
+		};
+
+		local Collapsed = false;
+
+		local function LayoutFlags()
+			local Offset = 0;
+
+			for _, Entry in next, FlagList do
+				local Show;
+
+				if Entry.Key == nil then
+					Show = not CustomMode;
+				elseif CustomMode then
+					Show = CustomKeys[Entry.Key] == true and States[Entry.Key] == true;
+				else
+					Show = States[Entry.Key] == true;
+				end;
+
+				Entry.Label.Visible = Show;
+
+				if Show then
+					Entry.Label.Position = UDim2.new(0, 0, 0, Offset);
+
+					Offset = Offset + 14;
+				end;
+			end;
+		end;
+
+		local function UpdateChip(Key: string)
+			local Chip = ChipsUI[Key];
+
+			if not Chip then
+				return;
+			end;
+
+			local Enabled = States[Key] == true;
+
+			Fatality:CreateAnimation(Chip, 0.3, {
+				BackgroundColor3 = (Enabled and Fatality.Colors.Main) or Color3.fromRGB(30, 30, 30),
+				TextTransparency = (Enabled and 0) or 0.450
+			});
+		end;
+
+		local function ApplyElement(Key: string)
+			local Enabled = States[Key] == true;
+
+			for _, Object in next, (ElementMap[Key] or {}) do
+				Object.Visible = Enabled;
+			end;
+
+			UpdateChip(Key);
+			LayoutFlags();
+		end;
+
+		local function SetElement(Key: string, Value: boolean, Silent: boolean?)
+			local NewValue = Value == true;
+			local Changed = States[Key] ~= NewValue;
+
+			States[Key] = NewValue;
+
+			ApplyElement(Key);
+
+			if not Silent and Changed then
+				Callback(Key, NewValue);
+			end;
+		end;
+
+		local function ApplySize()
+			local Height = (Collapsed and 25) or (25 + BodyHeight);
+
+			Fatality:CreateAnimation(Preview, 0.35, {
+				Size = UDim2.new(0, SideWidth, 0, Height)
+			});
+		end;
+
+		local function SetCollapsed(Value: boolean)
+			Collapsed = Value == true;
+
+			CollapseButton.Image = Fatality:GetIcon((Collapsed and "chevron-down") or "chevron-up");
+
+			ApplySize();
+		end;
+
+		-- // Help hint --\\
+		local Hint = Create("Frame", Content, {
+			Name = Fatality:RandomString(),
+			AnchorPoint = Vector2.new(0, 0),
+			BackgroundColor3 = Color3.fromRGB(16, 16, 16),
+			BackgroundTransparency = 1,
+			BorderColor3 = Color3.fromRGB(0, 0, 0),
+			BorderSizePixel = 0,
+			Position = UDim2.new(0, 8, 0, 8),
+			Size = UDim2.new(1, -16, 0, 42),
+			Visible = false,
+			ZIndex = 30
+		});
+
+		Create("UICorner", Hint, {
+			CornerRadius = UDim.new(0, 3)
+		});
+
+		local HintStroke = Create("UIStroke", Hint, {
+			Color = Fatality.Colors.Main,
+			Transparency = 1
+		});
+
+		local HintText = MakeText(Hint, {
+			Name = Fatality:RandomString(),
+			Position = UDim2.new(0, 8, 0, 0),
+			Size = UDim2.new(1, -16, 1, 0),
+			ZIndex = 31,
+			Text = "Click a chip - toggle its element. Drag a chip onto the stage - enable it, drop it outside - disable it.",
+			TextSize = 10.000,
+			TextTransparency = 1,
+			TextWrapped = true,
+			TextXAlignment = Enum.TextXAlignment.Left
+		});
+
+		local HintOpen = false;
+		local HintToken = 0;
+
+		local function SetHint(Value: boolean)
+			HintOpen = Value;
+			HintToken = HintToken + 1;
+
+			local Token = HintToken;
+
+			if Value then
+				Hint.Visible = true;
+
+				Fatality:CreateAnimation(Hint, 0.3, {
+					BackgroundTransparency = 0.060
+				});
+
+				Fatality:CreateAnimation(HintStroke, 0.3, {
+					Transparency = 0
+				});
+
+				Fatality:CreateAnimation(HintText, 0.3, {
+					TextTransparency = 0.150
+				});
+
+				task.delay(5, function()
+					if HintToken == Token and HintOpen then
+						SetHint(false);
+					end;
+				end);
+			else
+				Fatality:CreateAnimation(Hint, 0.3, {
+					BackgroundTransparency = 1
+				});
+
+				Fatality:CreateAnimation(HintStroke, 0.3, {
+					Transparency = 1
+				});
+
+				Fatality:CreateAnimation(HintText, 0.3, {
+					TextTransparency = 1
+				});
+
+				task.delay(0.3, function()
+					if HintToken == Token and not HintOpen then
+						Hint.Visible = false;
+					end;
+				end);
+			end;
+		end;
+
+		-- // Chip input: click to toggle, drag & drop onto stage --\\
+		local DragData = nil;
+
+		for Key, Chip in next, ChipsUI do
+			Chip.InputBegan:Connect(function(Input)
+				if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
+					local Ghost = Chip:Clone();
+
+					Ghost.Name = Fatality:RandomString();
+					Ghost.AnchorPoint = Vector2.new(0.5, 0.5);
+					Ghost.Parent = Fatalitywin;
+					Ghost.ZIndex = 90;
+					Ghost.TextTransparency = 0;
+
+					Create("UIStroke", Ghost, {
+						Color = Fatality.Colors.Main
+					});
+
+					DragData = {
+						Key = Key,
+						Chip = Chip,
+						Ghost = Ghost,
+						Origin = Vector2.new(Input.Position.X, Input.Position.Y),
+						Moved = false
+					};
+				end;
+			end);
+		end;
+
+		UserInputService.InputChanged:Connect(function(Input)
+			if DragData and (Input.UserInputType == Enum.UserInputType.MouseMovement or Input.UserInputType == Enum.UserInputType.Touch) then
+				local Position = Vector2.new(Input.Position.X, Input.Position.Y);
+
+				if (Position - DragData.Origin).Magnitude > 6 then
+					DragData.Moved = true;
+				end;
+
+				local ParentPosition = Fatalitywin.AbsolutePosition;
+
+				DragData.Ghost.Position = UDim2.fromOffset(Position.X - ParentPosition.X, Position.Y - ParentPosition.Y);
+			end;
+		end);
+
+		UserInputService.InputEnded:Connect(function(Input)
+			if DragData and (Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch) then
+				local Data = DragData;
+
+				DragData = nil;
+
+				Data.Ghost:Destroy();
+
+				local BlacklistIndex = table.find(Fatality.DragBlacklist, Data.Chip);
+
+				if BlacklistIndex then
+					table.remove(Fatality.DragBlacklist, BlacklistIndex);
+				end;
+
+				if Data.Moved then
+					SetElement(Data.Key, Fatality:IsMouseOverFrame(Stage) == true);
+				else
+					SetElement(Data.Key, not States[Data.Key]);
+				end;
+			end;
+		end);
+
+		-- // Buttons --\\
+		Fatality:CreateHover(HelpButton, function(bool)
+			Fatality:CreateAnimation(HelpButton, 0.45, {
+				ImageTransparency = (bool and 0.150) or 0.500
+			});
+		end);
+
+		Fatality:CreateHover(CollapseButton, function(bool)
+			Fatality:CreateAnimation(CollapseButton, 0.45, {
+				ImageTransparency = (bool and 0.150) or 0.500
+			});
+		end);
+
+		local HelpInput = Fatality:NewInput(HelpButton, function()
+			SetHint(not HintOpen);
+		end);
+
+		local CollapseInput = Fatality:NewInput(CollapseButton, function()
+			SetCollapsed(not Collapsed);
+		end);
+
+		Fatality:AddDragBlacklist(HelpButton);
+		Fatality:AddDragBlacklist(CollapseButton);
+		Fatality:AddDragBlacklist(HelpInput);
+		Fatality:AddDragBlacklist(CollapseInput);
+		Fatality:AddDragBlacklist(Stage);
+
+		-- // Menu fade sync --\\
+		local Faded = false;
+
+		local function Toggle(Value: boolean)
+			Faded = not Value;
+
+			if Value then
+				Content.Visible = true;
+
+				Fatality:CreateAnimation(Preview,0.5,{
+					BackgroundTransparency = 0
+				})
+
+				Fatality:CreateAnimation(Title,0.5,{
+					TextStrokeTransparency = 0.750,
+					TextTransparency = 0
+				})
+
+				Fatality:CreateAnimation(HelpButton,0.5,{
+					ImageTransparency = 0.500
+				})
+
+				Fatality:CreateAnimation(CollapseButton,0.5,{
+					ImageTransparency = 0.500
+				})
+
+				Fatality:CreateAnimation(Main,0.5,{
+					BackgroundTransparency = 0
+				})
+
+				Fatality:CreateAnimation(UIStroke,0.5,{
+					Transparency = 0
+				})
+			else
+				Fatality:CreateAnimation(Preview,0.5,{
+					BackgroundTransparency = 1
+				})
+
+				Fatality:CreateAnimation(Title,0.5,{
+					TextStrokeTransparency = 1,
+					TextTransparency = 1
+				})
+
+				Fatality:CreateAnimation(HelpButton,0.5,{
+					ImageTransparency = 1
+				})
+
+				Fatality:CreateAnimation(CollapseButton,0.5,{
+					ImageTransparency = 1
+				})
+
+				Fatality:CreateAnimation(Main,0.5,{
+					BackgroundTransparency = 1
+				})
+
+				Fatality:CreateAnimation(UIStroke,0.5,{
+					Transparency = 1
+				})
+
+				task.delay(0.5, function()
+					if Faded then
+						Content.Visible = false;
+					end;
+				end);
+			end;
+		end;
+
+		-- // Initial state --\\
+		for Key in next, ElementMap do
+			States[Key] = States[Key] == true;
+
+			ApplyElement(Key);
+		end;
+
+		for Key in next, ChipsUI do
+			UpdateChip(Key);
+		end;
+
+		LayoutTracer();
+
+		ApplySize();
+
+		Toggle(true);
+
+		Fatal.Signal.Event:Connect(Toggle);
+
+		local Response = Fatality:CreateResponse({
+			GetValue = function()
+				local Values = {};
+
+				for Key, Value in next, States do
+					Values[Key] = Value;
+				end;
+
+				Values.Collapsed = Collapsed;
+
+				return Values;
+			end,
+			SetValue = function(Values)
+				if typeof(Values) == 'table' then
+					for Key, Value in next, Values do
+						if Key == 'Collapsed' then
+							SetCollapsed(Value == true);
+						elseif ElementMap[Key] then
+							SetElement(Key, Value == true, false);
+						end;
+					end;
+				end;
+			end,
+			SetElement = function(Key: string, Value: boolean)
+				SetElement(Key, Value, false);
+			end,
+			SetCollapsed = function(Value: boolean)
+				SetCollapsed(Value == true);
+			end,
+			Flag = SideConfig.Flag and (SideConfig.Flag .. "ESPPreview")
+		});
+
+		Fatality.WindowFlags[Fatalitywin][(SideConfig.Flag or "ESP") .. "ESPPreview"] = Response;
+
+		return Response;
+	end;
+
+	if Window.ESPPreview ~= false then
+		local PanelConfig: ESPPreview = {};
+
+		if type(Window.ESPPreview) == "table" then
+			PanelConfig = Window.ESPPreview;
+		end;
+
+		CreateSideESPPreview(PanelConfig);
 	end;
 
 	function Fatal:SetVisible(b)
